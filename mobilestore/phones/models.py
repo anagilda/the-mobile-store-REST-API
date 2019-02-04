@@ -8,3 +8,20 @@ class Phone(models.Model):
     manufacturer = models.CharField(max_length=100, unique=True)
     description = models.TextField()
     stock = models.PositiveIntegerField()
+
+# specs::
+#     body
+#     display
+#     platform
+#     chipset
+#     memory
+# camera::
+#     main
+#     selfie
+#     features
+# battery
+# features
+# - OTHERS -
+# incart
+# count
+# total
