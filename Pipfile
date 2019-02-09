@@ -12,6 +12,7 @@ djangorestframework = "*"
 psycopg2 = "*"
 psycopg2-binary = "*"
 configparser = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.7"
