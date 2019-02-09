@@ -1,0 +1,21 @@
+:root {
+	--mainAccent: #39b891;
+	--mainLight: #95b0b2;
+	--mainWhite: #fef4f5;
+	--mainDark: #2b3e50;
+	--mainDarker: #324b4c;
+	--btnBlueMain: #25798f;
+	--btnBlueAccent: #23b9b8;
+	--btnDangerMain: #fa9435e3;
+	--btnDangerAccent: #dc3545;
+	--bgGradient: radial-gradient(
+		circle,
+		rgba(187, 187, 187, 0.6306897759103641) 30%,
+		rgba(149, 176, 178, 0.4598214285714286) 62%
+	);
+}
+
+body {
+	background: var(--mainDark);
+	color: var(--mainWhite);
+}
