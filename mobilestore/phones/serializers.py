@@ -7,5 +7,4 @@ class PhoneSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Phone
-        fields = ['id', 'model', 'image', 'manufacturer', 'price', \
-                  'description', 'specs', 'stock']
+        fields = '__all__'
