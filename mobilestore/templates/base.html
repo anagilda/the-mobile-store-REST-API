@@ -1,23 +1,62 @@
-{% load static from staticfiles %}
-
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>The Mobile Store - REST API</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-    <link rel="stylesheet" href="{% static 'styles.css' %}">
-  </head>
-  <body>
-    <!-- NAVBAR -->
-    
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<title>Page Title</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link
+			rel="stylesheet"
+			href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.0/css/bootstrap.min.css"
+			integrity="sha384-PDle/QlgIONtM1aqA2Qemk5gPOE7wFq8+Em+G/hmo5Iq0CCmYZLv3fVRDJ4MMwEA"
+			crossorigin="anonymous"
+		/>
+		<style>
+			.navbar {
+				background-color: #2b3e50;
+			}
+			.logo {
+				height: 2rem;
+			}
 
-    <header class="">
-      <h1>The Mobile Store - REST API</h1>
-    </header>
-    <div class="wrapper">
-      {% block content %} 
-      {% endblock %}
-    </div>
-  </body>
+			.nav-link {
+				color: black !important;
+				font-size: 1.1rem;
+			}
+			.nav-btn {
+				font-family: 'Roboto', sans-serif;
+				text-transform: capitalize;
+				border: none;
+				background: #2b3e50;
+				color: #fef4f5;
+				font-size: 1.2rem;
+				border-radius: 0.3rem;
+				padding: 0.2rem 0.8rem;
+				cursor: pointer;
+				margin: 0.2rem 0.5rem 0.2rem 0;
+				transition: all 0.1s ease-in-out;
+			}
+			.nav-btn:hover {
+				background: #39b891;
+			}
+			.nav-btn:focus {
+				outline: none;
+			}
+		</style>
+	</head>
+	<body>
+		<nav class="navbar navbar-expand-sm navbar-dark px-sm-5">
+			<div>
+				<img class="logo" src="../assets/logo.png" alt="logo" />
+			</div>
+			<div class="ml-auto mr-0">
+				<button class="nav-btn">
+					<span>
+						<i class="fas fa-shopping-cart"></i>
+						<span>Something</span>
+					</span>
+				</button>
+			</div>
+		</nav>
+	</body>
 </html>
