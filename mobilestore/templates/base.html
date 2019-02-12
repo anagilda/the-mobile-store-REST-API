@@ -1,0 +1,23 @@
+{% load static from staticfiles %}
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>The Mobile Store - REST API</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+  </head>
+  <body>
+    <!-- NAVBAR -->
+    
+
+    <header class="">
+      <h1>The Mobile Store - REST API</h1>
+    </header>
+    <div class="wrapper">
+      {% block content %} 
+      {% endblock %}
+    </div>
+  </body>
+</html>
