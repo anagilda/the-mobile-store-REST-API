@@ -3,19 +3,52 @@
 	--mainLight: #95b0b2;
 	--mainWhite: #fef4f5;
 	--mainDark: #2b3e50;
-	--mainDarker: #324b4c;
-	--btnBlueMain: #25798f;
-	--btnBlueAccent: #23b9b8;
-	--btnDangerMain: #fa9435e3;
-	--btnDangerAccent: #dc3545;
-	--bgGradient: radial-gradient(
-		circle,
-		rgba(187, 187, 187, 0.6306897759103641) 30%,
-		rgba(149, 176, 178, 0.4598214285714286) 62%
-	);
 }
 
 body {
+	background: var(--mainLight);
+	color: var(--mainWhite);
+}
+
+.navbar {
+	background-color: var(--mainDark);
+	margin-bottom: 1rem;
+}
+.logo {
+	height: 2rem;
+}
+
+.nav-link {
+	color: black !important;
+	font-size: 1.1rem;
+}
+.nav-btn {
+	font-family: 'Roboto', sans-serif;
+	border: none;
 	background: var(--mainDark);
 	color: var(--mainWhite);
+	font-size: 1.2rem;
+	border-radius: 0.3rem;
+	padding: 0.2rem 0.8rem;
+	cursor: pointer;
+	margin: 0.2rem 0.5rem 0.2rem 0;
+	transition: all 0.1s ease-in-out;
+}
+.nav-btn:hover {
+	background: var(--mainAccent);
+}
+.nav-btn:focus {
+	outline: none;
+}
+
+i{
+	margin-right: 0.3rem;
+}
+
+a {
+	color: var(--mainLight);
+}
+
+a:hover{
+	color: var(--mainAccent);
 }

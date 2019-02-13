@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 
-{% block content %} 
-<p>Guide</p>
+{% block link %}
+{% url 'api:phones-list' %}
+{% endblock %}
+
+{% block bookmark %}
+    <i class="fas fa-cogs"></i>
+    <span>Go to API</span>
+{% endblock %}
+
+{% block content %}
+    <div class="api-info">
+        <pre class="prettyprint">Coming soon...</pre> 
+    </div>
 {% endblock %}

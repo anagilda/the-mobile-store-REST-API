@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% load static from staticfiles %}
+{% load rest_framework %}
+{% load i18n %}
+
+{% block robots %}
+    <meta name="robots" content="NONE,NOARCHIVE" />
+{% endblock %}
+
+{% block header %} {{ name }} {% endblock %}
+
+{% block content %} 
+    <div class="request-info" style="clear: both" >
+        <pre class="prettyprint"><b>{{ request.method }}</b> {{ request.get_full_path }}</pre>
+    </div>
+    <div class="response-info">
+        {% autoescape off %}
+        <pre class="prettyprint">{{ content|urlize_quoted_links }}</pre> 
+        {% endautoescape %}
+    </div>
+{% endblock %}
