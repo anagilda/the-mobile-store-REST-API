@@ -7,13 +7,40 @@
 
 body {
 	background: var(--mainLight);
+}
+
+h1 {
 	color: var(--mainWhite);
+}
+
+a {
+	color: var(--mainLight);
+}
+
+a:hover {
+	color: var(--mainAccent);
+}
+
+ul.dashed {
+	list-style-type: none;
+}
+ul.dashed > li {
+	text-indent: -15px;
+}
+ul.dashed > li:before {
+	content: "- ";
+	text-indent: -15px;
+}
+
+.code {
+	color: var(--mainDark);
 }
 
 .navbar {
 	background-color: var(--mainDark);
 	margin-bottom: 1rem;
 }
+
 .logo {
 	height: 2rem;
 }
@@ -45,10 +72,14 @@ i{
 	margin-right: 0.3rem;
 }
 
-a {
-	color: var(--mainLight);
+.guide {
+	padding: 12px 20px;
+	background-color: #f7f7f9;
+	border: 1px solid #e1e1e8;
+	margin-bottom: 15px;
 }
 
-a:hover{
+.color-text {
 	color: var(--mainAccent);
+	font-size: 1.25rem;
 }

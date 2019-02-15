@@ -11,6 +11,66 @@
 
 {% block content %}
     <div class="api-info">
-        <pre class="prettyprint">Coming soon...</pre> 
+        <div class="guide">
+            <p>
+                <b class="color-text">GET /api/phones/</b><br>
+                Phone list - retrieves a list of phones (id, model, image and price).
+                <ul class="dashed">
+                    <li>Example usage:</li>
+                    <pre><a href="/api/phones/">[base_url]/api/phones/</a></pre>
+                    <li>Example output:</li>
+<pre class="prettify code">
+[
+    {
+        "id": 1,
+        "model": "Google Pixel 3",
+        "image": "http://127.0.0.1:8000/media/img/phone_1-min.jpg",
+        "price": "799.00"
+    },
+    {
+        "id": 2,
+        "model": "Samsung Note 9",
+        "image": "http://127.0.0.1:8000/media/img/phone_2-min.jpg",
+        "price": "999.00"
+    }
+]
+</pre>
+                </ul>
+            </p>
+            <p>
+                <b class="color-text">GET /api/phones/{id}</b><br>
+                Phone detail - retrieves the full details of a phone with the given id (id, manufacturer, model, image, price, description, specs and stock).
+                <ul class="dashed">
+                    <li>Example usage:</li>
+                    <pre><a href="/api/phones/1/">[base_url]/api/phones/1/</a></pre>
+                    <li>Example output:</li>        
+<pre class="prettify code">
+{
+    "id": 1,
+    "manufacturer": "Google Inc.",
+    "model": "Google Pixel 3",
+    "image": "http://127.0.0.1:8000/media/img/phone_1-min.jpg",
+    "price": "799.00",
+    "description": "Staying too far from your loved ones? Video call them for hours on end. The weather is romantic? Listen to your favourite playlists all day long. Don’t want to go out this weekend? Then binge watch your favourite series on the Internet. The Pixel 3 ensures that there’s never a dull moment, all thanks to its powerful battery, impressive cameras and its expansive bezel-less display.",
+    "specs": {
+        "body": "145.6 x 68.2 x 7.9 mm (5.73 x 2.69 x 0.31 in)",
+        "camera": {
+            "main": "12.2 MP (wide) dual pixel",
+            "selfie": "8 MP (ultrawide), no AF",
+            "features": "Dual-LED flash, Auto-HDR, panorama"
+        },
+        "memory": "64/128 GB, 4 GB RAM",
+        "battery": "Non-removable Li-Po 2915 mAh battery",
+        "chipset": "Qualcomm SDM845 Snapdragon 845 (10 nm)",
+        "display": "5.5 inches, 1080 x 2160 pixels, 18:9 ratio (~443 ppi density)",
+        "features": "NFC, USB 3.1 Type-C 1.0, fingerprint (rear-mounted), fast battery charging, Gorilla Glass 5, aluminum frame, IP68 dust/water resistant, Always-on display, HDR",
+        "platform": "OS Android 9.0 (Pie)"
+    },
+    "stock": 49
+}
+</pre>
+                </ul>
+            </p>
+        </div> 
     </div>
 {% endblock %}

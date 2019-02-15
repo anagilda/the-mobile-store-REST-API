@@ -6,7 +6,7 @@ class PhoneListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Phone
-        fields = ['model', 'image', 'price']
+        fields = ['id','model', 'image', 'price']
 
 
 class PhoneDetailSerializer(serializers.ModelSerializer):
