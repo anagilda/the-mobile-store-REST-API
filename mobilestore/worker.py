@@ -5,6 +5,7 @@ import psycopg2.extras
 import logging
 import configparser
 import requests
+import re
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 from random import randint
@@ -155,30 +156,44 @@ def get_phone_info(gsm_url):
     '''
     phone_info = {}
 
-
     page_source = requests.get(gsm_url)
     html = page_source.text
     soup = BeautifulSoup(html, 'html.parser')
 
-    title = soup.find('h1', class_='specs-phone-name-title')
-    phone_info['model'] = title.string
+    details = get_details(soup)
 
+    phone_info['model'] = details['phone']
+    phone_info['manufacturer'] = details['manufacturer']
+    # image
+    phone_info['price'] = float(
+        re.search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
+          .group()
+    )
+    phone_info['info'] = details['description']
+    
     phone_info['specs'] = {}
-    details = get_details(soup.find('div', id='specs-list'))
+    # phone_info['specs']['body'] = details['body']['dimensions']
+    # phone_info['specs']['display'] = details['display']['type']
+    # phone_info['specs']['platform'] = details['platform']['os']
+    # phone_info['specs']['chipset'] = details['platform']['chipset']
+    # phone_info['specs']['memory'] = details['memory']['internal']
 
-    phone_info['specs']['body'] = details['body']['dimensions']
-    phone_info['specs']['display'] = details['display']['type']
-    phone_info['specs']['platform'] = details['platform']['os']
-    phone_info['specs']['chipset'] = details['platform']['chipset']
-    phone_info['specs']['memory'] = details['memory']['internal']
+
+
+
     # phone_info['specs']['camera'] = {
     #     'main': details['main camera'][0],
     #     'selfie': details['selfie camera'][0],
     #     'features': details['main camera']['features']
     # }
 
+    # https://www.gsmarena.com/samsung_galaxy_s10+-9535.php
+    # Error on chipset... even though text is '-' on website
+
     # model, image, manufacturer, price, description, specs, stock
     
+
+    print(phone_info)
     return phone_info
 
 
@@ -193,14 +208,26 @@ def get_details(souplist):
     '''
     details = {}
     
-    for table in souplist.findAll("table"):
-        section = table.find("th").text.lower()
-        specs = {}
-        for line in table.findAll("tr"):
-            name, info = [td.string for td in line.findAll("td")]
-            name = name.lower()
-            specs[name] = info
-        details[section] = specs  
+    summary = souplist.find('div', id='details')
+    labels = summary.find_all('label')
+    spans = summary.find_all('span')
+
+    for header, info in zip(labels, spans):
+        section = header.string.lower().replace(' ', '')
+        details[section] = info.text
+
+    specs = souplist.find('div', id='specs')
+
+
+    # for table in souplist.findAll("table"):
+    #     section = table.find("th").text.lower()
+    #     print(section)
+    #     specs = {}
+    #     for line in table.findAll("tr"):
+    #         name, info = [td.string for td in line.findAll("td")]
+    #         name = name.lower()
+    #         specs[name] = info
+    #     details[section] = specs  
 
     return details
 
@@ -260,7 +287,8 @@ def main():
     '''
     # readfile(PATH_TO_FILE) # PLaceholder data
     
-    fetch_data(GSM_ARENA_RES, GSM_ARENA, 20) # Scrape the most popular phones
+    #fetch_data(GSM_ARENA_RES, GSM_ARENA, 1) # Scrape the most popular phones
+    get_phone_info('https://www.fonearena.com/xiaomi-mi-9_9166.html') #, 'https://www.fonearena.com/')
 
 
 if __name__ == "__main__":
