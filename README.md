@@ -74,7 +74,9 @@ Example output:
 
 1. Open the terminal in the project directory.
 2. Run `pipenv install` to create the environment and install dependencies.
-3. Open the server (usually at `http://localhost:8000/`).
+3. Run the `mobilestore/worker.py` file to insert data to the database (if there is some problem with the scraper, you can run the `readfile()` function instead to enter placeholder data).
+4. Open the server (usually at `http://localhost:8000/`).
+5. Use the API!
 
 Run `exit` to deactivate the environment.
 
@@ -97,7 +99,7 @@ Run `exit` to deactivate the environment.
     }
     ```
 
-2. In the terminal run:
+2. In the terminal, run:
     ```
     python manage.py makemigrations
     python manage.py migrate 

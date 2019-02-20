@@ -14,6 +14,8 @@ psycopg2-binary = "*"
 configparser = "*"
 pillow = "*"
 requests = "*"
+beautifulsoup4 = "*"
+requests-html = "*"
 
 [requires]
 python_version = "3.7"
