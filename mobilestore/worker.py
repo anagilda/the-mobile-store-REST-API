@@ -18,8 +18,7 @@ config.read(os.path.join(BASE_DIR, '.ini'))
 
 PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
 
-GSM_ARENA = 'https://www.gsmarena.com/'
-GSM_ARENA_RES = GSM_ARENA + 'results.php3?sFormFactors=1' # results page
+FONEARENA = 'https://www.fonearena.com/'
 ALLO = 'https://allo.ua/'
 
 
@@ -164,34 +163,39 @@ def get_phone_info(gsm_url):
 
     phone_info['model'] = details['phone']
     phone_info['manufacturer'] = details['manufacturer']
-    # image
     phone_info['price'] = float(
         re.search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
           .group()
     )
+    
+    # TODO: Info works but can be improved
     phone_info['info'] = details['description']
     
     phone_info['specs'] = {}
-    # phone_info['specs']['body'] = details['body']['dimensions']
-    # phone_info['specs']['display'] = details['display']['type']
-    # phone_info['specs']['platform'] = details['platform']['os']
-    # phone_info['specs']['chipset'] = details['platform']['chipset']
-    # phone_info['specs']['memory'] = details['memory']['internal']
+    phone_info['specs']['body'] = details['built']['dimensions']
+    phone_info['specs']['display'] = details['display']['size']
+    phone_info['specs']['platform'] = details['software']['operatingsystem']
+    phone_info['specs']['chipset'] = details['chipset']
+    phone_info['specs']['memory'] = details['memory']['inbuilt']
 
+    phone_info['specs']['camera'] = {
+        'main': details['rearcamera'],
+        'selfie': details['frontcamera']
+        # ,
+        # 'features': details['main camera']['features']
+    }
 
+    phone_info['features'] = details['featuresS']
 
-
-    # phone_info['specs']['camera'] = {
-    #     'main': details['main camera'][0],
-    #     'selfie': details['selfie camera'][0],
-    #     'features': details['main camera']['features']
-    # }
-
-    # https://www.gsmarena.com/samsung_galaxy_s10+-9535.php
-    # Error on chipset... even though text is '-' on website
-
-    # model, image, manufacturer, price, description, specs, stock
+    phone_info['battery'] = "%s %s" % (
+        details['battery']['type'],
+        details['battery']['capacity']
+    )
     
+    # TODO
+    # image = get_image(phone_info['model'])
+    
+    phone_info['stock'] = randint(1,100)
 
     print(phone_info)
     return phone_info
@@ -213,23 +217,77 @@ def get_details(souplist):
     spans = summary.find_all('span')
 
     for header, info in zip(labels, spans):
-        section = header.string.lower().replace(' ', '')
+        section = minify_str(header.string)
         details[section] = info.text
 
-    specs = souplist.find('div', id='specs')
+    highlights = souplist.find('div', class_='hList').find_all("li")
+    feats = []
+    for h in highlights:
+        h = clean_str(h.text)
+        
+        if 'processor' in h.lower():
+            details['chipset'] =  h
+        elif 'rear camera' in h.lower():
+            details['rearcamera'] =  h
+        elif 'front camera' in h.lower():
+            details['frontcamera'] =  h
+        else:
+            conditions = [
+                'battery' not in h.lower(),
+                'RAM' not in h,
+                'display' not in h.lower()
+            ]
+            if all(conditions):
+                feats.append(h)
+    
+    details['features'] = ', '.join(feats)
 
-
-    # for table in souplist.findAll("table"):
-    #     section = table.find("th").text.lower()
-    #     print(section)
-    #     specs = {}
-    #     for line in table.findAll("tr"):
-    #         name, info = [td.string for td in line.findAll("td")]
-    #         name = name.lower()
-    #         specs[name] = info
-    #     details[section] = specs  
+    h2s = souplist.find_all('h2')
+    sections = souplist.find_all(id=re.compile('^section_'))
+        
+    for header, info in zip(h2s, sections):
+        title = minify_str(header.string)
+       
+        specs = {}
+        for line in info.findAll("tr"):
+            name, info = [td.string for td in line.findAll("td")]
+            specs[minify_str(name)] = clean_str(info)
+    
+        details[title] = specs 
 
     return details
+
+
+def minify_str(string):
+    '''
+    Cleans a given string, by removing spaces and turning it into lowercase.
+
+    Requires: string (str).
+    Ensures: string is returned in lowercase with no spaces.
+    '''
+    return string.replace(' ', '').lower()
+
+
+def clean_str(string):
+    '''
+    Cleans a given string, by removing extra spaces, tabs, newlines and turning
+    them into a single space, and deleting leading and trailing white spaces.
+    Also removes leading bullets.
+
+    Requires: string (str).
+    Ensures: string is returned in with correct spacing.
+    '''
+    return re.sub('^-', '', re.sub('\s+', ' ', string)).strip()
+
+
+def camera_info(string):
+    '''
+    Separates a given string, at the last occurance of 'MP' (megapixels).
+
+    Requires: string (str), with info about a camera.
+    Ensures: 2 strings are returned.
+    '''
+    return re.split('(?<=MP) (?!.*MP.*)', string)
 
 
 def insert_data(conn, cursor, model, image, manufacturer, price, description, specs, stock):
@@ -287,8 +345,7 @@ def main():
     '''
     # readfile(PATH_TO_FILE) # PLaceholder data
     
-    #fetch_data(GSM_ARENA_RES, GSM_ARENA, 1) # Scrape the most popular phones
-    get_phone_info('https://www.fonearena.com/xiaomi-mi-9_9166.html') #, 'https://www.fonearena.com/')
+    get_phone_info(FONEARENA + 'xiaomi-mi-9_9166.html')
 
 
 if __name__ == "__main__":
