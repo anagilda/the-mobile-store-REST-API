@@ -21,7 +21,10 @@ config.read(os.path.join(BASE_DIR, '.ini'))
 
 PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
 
-FONEARENA = 'https://www.fonearena.com/'
+
+GSM_ARENA = 'https://www.gsmarena.com/'
+GSM_ARENA_RES = GSM_ARENA + 'results.php3?sAvailabilities=1&FormFactors=1'
+FONEARENA_SEARCH = 'https://www.fonearena.com/csearch.php?q='
 ALLO = 'https://allo.ua/ru/'
 ALLO_SEARCH = ALLO + 'catalogsearch/result/index/?cat=3&q=' # cat=3 only phones
 
@@ -102,177 +105,174 @@ def readfile(filepath):
     close_db(conn, cur)
 
 
-def fetch_data(url, base_url, limit=1):
+def fetch_data(url, limit=1):
     '''
     Fetches data about phones and companies and inserts it to the database(db).
-    Finds all links in a page (inside a div with a given class, in a given type
-    of list).
+    Finds all links for phones found in a given GSM Arena results page, up to a 
+    certain limit.
 
     Requires: 
         - url (str): must be a link with a search results list of phones.
-        - base_url (str): base url from which to create links.
         - limit (int - optional): maximum number of results added to the db.
     Ensures:
         - Finds a link to each of the phones, gathers more info and then,
           data is gathered and added to db, if not already saved.
     '''
-
     # conn, cur = connect_db()
+    driver = webdriver.Chrome('./chromedriver')
 
-    page_source = requests.get(url)
-    html = page_source.text
-    soup = BeautifulSoup(html, 'html.parser')
+    driver.get(url)
 
-    results = soup.find('div', class_ = 'makers')
-    
-    list_items = results.find_all('a')
-    num_items = len(list_items)
+    results = [ 
+        res.get_attribute('href') 
+        for res in (
+            driver
+            .find_element_by_class_name('makers')
+            .find_elements_by_tag_name('a')
+        )
+    ]
+
+    num_items = len(results)
     if limit is None or num_items < limit:
         limit = num_items
 
-    for anchor in list_items[:limit]:
-        phone_href = base_url + anchor.get('href')
+    for anchor in results[:limit]:
         
-        phone_info = get_phone_info(phone_href)
-        
+        # try:
+        phone_info = get_phone_info(anchor, driver)
         print(phone_info)
 
-        # insert_data(
-        #    cur, 
-        #    image,
-        #    phone_info['model'],
-        #    phone_info['manufacturer'],
-        #    phone_info['price'],
-        #    phone_info['description'],
-        #    phone_info['specs'],
-        #    phone_info['stock']
-        # )
+        # except: 
+            # not enough data ?
+            # phone already in database ?
+            # something else?
+            # try next phone
 
+        # else:
+            # insert_data(
+            #    cur, 
+            #    image,
+            #    phone_info['model'],
+            #    phone_info['manufacturer'],
+            #    phone_info['price'],
+            #    phone_info['description'],
+            #    phone_info['specs'],
+            #    phone_info['stock']
+            # )
+
+    driver.quit()
     # close_db(conn, cur)
 
-    
-def get_soup(url):
+  
+def get_phone_info(url, driver):
     '''
     ---
     
     Requires: 
-        - ...
-    Ensures:
-        - ... 
-    '''
-    page_source = requests.get(url)
-    html = page_source.text
-    return BeautifulSoup(html, 'html.parser')
-
-
-def get_phone_info(gsm_url):
-    '''
-    ---
-    
-    Requires: 
-        - ...
+        - url (str):
+        - driver
     Ensures:
         - ... 
     '''
     phone_info = {}
 
-    soup = get_soup(gsm_url)
+    driver.get(url)
 
-    details = get_details(soup)
+    model = driver.find_element_by_class_name('specs-phone-name-title').text
+    # TODO: If model already in database, next phone
+    # assertion > exception / return ...
 
-    phone_info['model'] = details['phone']
+    # else:
+    details = get_details(model, driver)
+
+    phone_info['model'] = model
+    phone_info['image'] = get_img(model, driver)
     phone_info['manufacturer'] = details['manufacturer']
     phone_info['price'] = float(
-        re.search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
-          .group()
+        re
+        .search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
+        .group()
     )
-    
-    # TODO: Info works but can be improved
     phone_info['info'] = details['description']
-    
     phone_info['specs'] = {}
-    phone_info['specs']['body'] = details['built']['dimensions']
+    phone_info['specs']['body'] = details['body']['dimensions']
     phone_info['specs']['display'] = details['display']['size']
-    phone_info['specs']['platform'] = details['software']['operatingsystem']
-    phone_info['specs']['chipset'] = details['chipset']
-    phone_info['specs']['memory'] = details['memory']['inbuilt']
-
+    phone_info['specs']['platform'] = details['platform']['os']
+    phone_info['specs']['chipset'] = details['platform']['chipset']
+    phone_info['specs']['memory'] = details['memory']['internal']
     phone_info['specs']['camera'] = {
         'main': details['rearcamera'],
-        'selfie': details['frontcamera']
-        # ,
-        # 'features': details['main camera']['features']
+        'selfie': details['frontcamera'],
+        'features': details['maincamera']['features']
     }
-
-    phone_info['features'] = details['featuresS']
-
-    phone_info['battery'] = "%s %s" % (
-        details['battery']['type'],
-        details['battery']['capacity']
-    )
-    
-    # TODO
-    # image = get_image(phone_info['model'])
-    
+    phone_info['features'] = details['features']['sensors']
+    phone_info['battery'] = details['battery']['']
     phone_info['stock'] = randint(1,100)
 
-    print(phone_info)
     return phone_info
 
 
-def get_details(souplist):
+def get_details(model, driver):
     '''
     Parses details from a given list of tables and saves it to a dictionary.
 
     Requires:
-        - souplist: a soup object with the table element.
+        - model (str):
+        - driver: a soup object with the table element.
     Ensures:
         - details (dict): information for each th table section from the list.
-    '''
+    '''   
     details = {}
-    
-    summary = souplist.find('div', id='details')
-    labels = summary.find_all('label')
-    spans = summary.find_all('span')
+   
+    for table in driver.find_elements_by_tag_name('table'):
+        section = table.find_element_by_tag_name('th').text
+        specs = {}
+        for line in table.find_elements_by_tag_name('tr'):
+            try:
+                name, info = [
+                    td.text for td in line.find_elements_by_tag_name('td')
+                ]
+            except:
+                logging.exception(
+                    str(datetime.now()) 
+                    + ' - Unable to extract info from line in table.'
+                )
+            else:
+                specs[minify_str(name)] = clean_str(info)
+        details[minify_str(section)] = specs
+
+    fonearena_specs = [
+        'manufacturer', 'price(usd)', 'description', 'rearcamera', 'frontcamera'
+    ]
+
+    driver.get(FONEARENA_SEARCH + model.replace(' ', '+'))
+    (driver
+        .find_element_by_class_name('gsc-resultsbox-visible')
+        .find_element_by_partial_link_text('Full Phone Specifications')
+        .click()
+    )
+
+    summary = driver.find_element_by_id('details')
+    labels = summary.find_elements_by_tag_name('label')
+    spans = summary.find_elements_by_tag_name('span')
 
     for header, info in zip(labels, spans):
-        section = minify_str(header.string)
-        details[section] = info.text
+        section = minify_str(header.text)
+        if section in fonearena_specs:
+            details[section] = info.text
 
-    highlights = souplist.find('div', class_='hList').find_all("li")
-    feats = []
+    highlights = (
+        driver
+        .find_element_by_class_name('hList')
+        .find_elements_by_tag_name("li")
+    )
+
     for h in highlights:
         h = clean_str(h.text)
-        
-        if 'processor' in h.lower():
-            details['chipset'] =  h
+        if 'front camera' in h.lower():
+            details['frontcamera'] =  camera_info(h)
         elif 'rear camera' in h.lower():
-            details['rearcamera'] =  h
-        elif 'front camera' in h.lower():
-            details['frontcamera'] =  h
-        else:
-            conditions = [
-                'battery' not in h.lower(),
-                'RAM' not in h,
-                'display' not in h.lower()
-            ]
-            if all(conditions):
-                feats.append(h)
-    
-    details['features'] = ', '.join(feats)
-
-    h2s = souplist.find_all('h2')
-    sections = souplist.find_all(id=re.compile('^section_'))
-        
-    for header, info in zip(h2s, sections):
-        title = minify_str(header.string)
-       
-        specs = {}
-        for line in info.findAll("tr"):
-            name, info = [td.string for td in line.findAll("td")]
-            specs[minify_str(name)] = clean_str(info)
-    
-        details[title] = specs 
+            details['rearcamera'] =  camera_info(h)
 
     return details
 
@@ -304,9 +304,9 @@ def camera_info(string):
     Separates a given string, at the last occurance of 'MP' (megapixels).
 
     Requires: string (str), with info about a camera.
-    Ensures: 2 strings are returned.
+    Ensures: One string is returned with the information about megapixels only.
     '''
-    return re.split('(?<=MP) (?!.*MP.*)', string)
+    return re.split('(?<=MP) (?!.*MP.*)', string)[0]
 
 
 def insert_data(conn, cursor, model, image, manufacturer, price, description, specs, stock):
@@ -330,6 +330,8 @@ def insert_data(conn, cursor, model, image, manufacturer, price, description, sp
         - data is saved to database.
     '''
     # Check if phone exists in the database
+
+    # TODO: Make this separate to be called before fetching so much info
     query = "SELECT id FROM phones_phone WHERE model='%s';" % model
     cursor.execute(query)
     if not cursor.fetchone():
@@ -370,72 +372,39 @@ def insert_data(conn, cursor, model, image, manufacturer, price, description, sp
         )
 
 
-
-def get_img(phone):
+def get_img(phone, driver):
     '''
 
     Requires:
     Ensures:
     '''
+    # Search page
     search_url = ALLO_SEARCH + phone.replace(' ', '+')
-    results = get_soup(search_url)
-
-    first_result = results.find('div', class_='product-name-container')
-    anchor = first_result.find('a').get('href')
-    
-
-    # session = HTMLSession()
-    # r = session.get('https:' + anchor)
-    # r.html.render(timeout=0, script="""
-    #     () => {
-    #         _gaq.push(['_trackEvent', 'Card', 'action', 'big-photo']);
-    #         // document.getElementById("zoomWindow").style.display = "block";
-    #         return false;
-    #     }
-    # """)
-    
-    # zzz = r.html.find('#zoomWindow', first=True)
-    # session.close()
-
-    url = 'https:' + anchor
-
-    driver = webdriver.Chrome('./chromedriver')
-    driver.get(url)
-    time.sleep(5) # Make sure the website loads completely (javascript included)
+    driver.get(search_url)
+    (driver
+        .find_element_by_class_name('product-name-container')
+        .find_element_by_tag_name('a')
+        .click()
+    )
+    # Phone info page
     driver.find_element_by_class_name('zoomImageMediaTab-main').click()
-
     img_window = driver.find_element_by_id('zoomerViewPort')
     first_img = img_window.find_elements_by_tag_name("img")[0]
-    url = first_img.get_attribute("src")
-        
-    driver.quit()
+    img_url = first_img.get_attribute("src")
 
-    img_path = os.path.join(BASE_DIR, 'assets/img', phone + '.jpg')
-    urllib.request.urlretrieve(url, img_path)
+    img_path = os.path.join(BASE_DIR, 'assets/img', minify_str(phone) + '.jpg')
+    urllib.request.urlretrieve(img_url, img_path)
 
-
-def patch_pyppeteer():
-    import pyppeteer.connection
-    original_method = pyppeteer.connection.websockets.client.connect
-
-    def new_method(*args, **kwargs):
-        kwargs['ping_interval'] = None
-        kwargs['ping_timeout'] = None
-        return original_method(*args, **kwargs)
-
-    pyppeteer.connection.websockets.client.connect = new_method
-
+    return img_path
 
 
 def main():
     '''
-    Executes the main worker program to fetch data and insert it to the database.
+    Executes the main worker program to fetch data about smartphones and insert 
+    it to the database.
     '''
-    patch_pyppeteer()
-    # readfile(PATH_TO_FILE) # PLaceholder data
-    
-    # get_phone_info(FONEARENA + 'xiaomi-mi-9_9166.html')
-    get_img('Xiaomi Mi 9')
+    # readfile(PATH_TO_FILE) # Placeholder data
+    fetch_data(GSM_ARENA_RES, 2)
 
 
 if __name__ == "__main__":
