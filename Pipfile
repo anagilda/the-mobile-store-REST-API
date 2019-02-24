@@ -16,6 +16,8 @@ pillow = "*"
 requests = "*"
 beautifulsoup4 = "*"
 requests-html = "*"
+pyppeteer = "*"
+selenium = "*"
 
 [requires]
 python_version = "3.7"

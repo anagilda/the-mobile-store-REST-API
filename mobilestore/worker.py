@@ -6,6 +6,9 @@ import logging
 import configparser
 import requests
 import re
+import urllib.request
+import time
+from selenium import webdriver
 from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 from random import randint
@@ -19,7 +22,8 @@ config.read(os.path.join(BASE_DIR, '.ini'))
 PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
 
 FONEARENA = 'https://www.fonearena.com/'
-ALLO = 'https://allo.ua/'
+ALLO = 'https://allo.ua/ru/'
+ALLO_SEARCH = ALLO + 'catalogsearch/result/index/?cat=3&q=' # cat=3 only phones
 
 
 def connect_db():
@@ -43,7 +47,10 @@ def connect_db():
         print('Successful connection to DB.')
 
     except:
-        logging.exception(str(datetime.now()) + ' - Unable to connect to the database.')
+        logging.exception(
+            str(datetime.now()) 
+            + ' - Unable to connect to the database.'
+        )
 
     else:
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
@@ -97,17 +104,17 @@ def readfile(filepath):
 
 def fetch_data(url, base_url, limit=1):
     '''
-    Fetches data about phones and companies and inserts it to the database.
+    Fetches data about phones and companies and inserts it to the database(db).
     Finds all links in a page (inside a div with a given class, in a given type
     of list).
 
     Requires: 
         - url (str): must be a link with a search results list of phones.
         - base_url (str): base url from which to create links.
-        - limit (int - optional): maximum number of results added to the database.
+        - limit (int - optional): maximum number of results added to the db.
     Ensures:
         - Finds a link to each of the phones, gathers more info and then,
-          data is gathered and added to database, if not already saved.
+          data is gathered and added to db, if not already saved.
     '''
 
     # conn, cur = connect_db()
@@ -144,6 +151,20 @@ def fetch_data(url, base_url, limit=1):
     # close_db(conn, cur)
 
     
+def get_soup(url):
+    '''
+    ---
+    
+    Requires: 
+        - ...
+    Ensures:
+        - ... 
+    '''
+    page_source = requests.get(url)
+    html = page_source.text
+    return BeautifulSoup(html, 'html.parser')
+
+
 def get_phone_info(gsm_url):
     '''
     ---
@@ -155,9 +176,7 @@ def get_phone_info(gsm_url):
     '''
     phone_info = {}
 
-    page_source = requests.get(gsm_url)
-    html = page_source.text
-    soup = BeautifulSoup(html, 'html.parser')
+    soup = get_soup(gsm_url)
 
     details = get_details(soup)
 
@@ -292,9 +311,9 @@ def camera_info(string):
 
 def insert_data(conn, cursor, model, image, manufacturer, price, description, specs, stock):
     '''
-    Inserts data about one given phone to the provided database, and also data about the 
-    company that manufactures it, if necessary. Phone data will not be added if phone model
-    already exists in the database.
+    Inserts data about one given phone to the provided database, and also data 
+    about the company that manufactures it, if necessary. Phone data will not 
+    be added if phone model already exists in the database.
 
     Requires: 
         - conn: a connection established to the database;
@@ -304,48 +323,119 @@ def insert_data(conn, cursor, model, image, manufacturer, price, description, sp
         - manufacturer (str);
         - price (int);
         - description (str);
-        - specs (json) - including information about body, display, platform, chipset,
-          memory, camera (main, selfie, featues), battery and features; 
+        - specs (json) - including information about body, display, platform, 
+          chipset, memory, camera (main, selfie, features), battery & features; 
         - stock (int).
     Ensures:
         - data is saved to database.
     '''
     # Check if phone exists in the database
-    query = "SELECT id FROM phones_phone WHERE model='%s' ;" % model
+    query = "SELECT id FROM phones_phone WHERE model='%s';" % model
     cursor.execute(query)
     if not cursor.fetchone():
         # Check if company exists in the database and save its ID
-        query = "SELECT id FROM phones_company WHERE name='%s' ;"  % manufacturer
+        query = "SELECT id FROM phones_company WHERE name='%s';" % manufacturer
         cursor.execute(query)
         company_key = cursor.fetchone()
         if not company_key:
             # Insert new company to db
-            query = "INSERT INTO phones_company(name) VALUES ('%s') RETURNING id;" % manufacturer
+            query = """
+                INSERT INTO phones_company (name) 
+                VALUES ('%s') RETURNING id;
+                """ % manufacturer
             cursor.execute(query)
             company_key = cursor.fetchone()
             conn.commit()
-            print(datetime.now(),'- New company added to database (%s)' % (manufacturer) )
+            print(
+                datetime.now(),
+                '- New company added to database (%s)' % (manufacturer)
+            )
         company_key = company_key[0]
         
         # Insert new phone to db
-        query = """INSERT INTO phones_phone
-                (model, image, manufacturer_id, price, description, specs, stock)
-                VALUES ('%s', '%s', %s, %s, '%s', '%s', %s);""" \
-                % (model, image, company_key, price, description, specs, stock)
+        query = """INSERT INTO phones_phone 
+            (model, image, manufacturer_id, price, description, specs, stock)
+            VALUES ('%s', '%s', %s, %s, '%s', '%s', %s);
+            """ % (model, image, company_key, price, description, specs, stock)
         cursor.execute(query)
         conn.commit()
-        print(datetime.now(), '- New phone added to the database (%s)' % model)
+        print(
+            datetime.now(), 
+            '- New phone added to the database (%s)' % model
+        )
     else:
-        print(datetime.now(), '- Phone already exists in the database (%s)' % model)
+        print(
+            datetime.now(), 
+            '- Phone already exists in the database (%s)' % model
+        )
+
+
+
+def get_img(phone):
+    '''
+
+    Requires:
+    Ensures:
+    '''
+    search_url = ALLO_SEARCH + phone.replace(' ', '+')
+    results = get_soup(search_url)
+
+    first_result = results.find('div', class_='product-name-container')
+    anchor = first_result.find('a').get('href')
+    
+
+    # session = HTMLSession()
+    # r = session.get('https:' + anchor)
+    # r.html.render(timeout=0, script="""
+    #     () => {
+    #         _gaq.push(['_trackEvent', 'Card', 'action', 'big-photo']);
+    #         // document.getElementById("zoomWindow").style.display = "block";
+    #         return false;
+    #     }
+    # """)
+    
+    # zzz = r.html.find('#zoomWindow', first=True)
+    # session.close()
+
+    url = 'https:' + anchor
+
+    driver = webdriver.Chrome('./chromedriver')
+    driver.get(url)
+    time.sleep(5) # Make sure the website loads completely (javascript included)
+    driver.find_element_by_class_name('zoomImageMediaTab-main').click()
+
+    img_window = driver.find_element_by_id('zoomerViewPort')
+    first_img = img_window.find_elements_by_tag_name("img")[0]
+    url = first_img.get_attribute("src")
+        
+    driver.quit()
+
+    img_path = os.path.join(BASE_DIR, 'assets/img', phone + '.jpg')
+    urllib.request.urlretrieve(url, img_path)
+
+
+def patch_pyppeteer():
+    import pyppeteer.connection
+    original_method = pyppeteer.connection.websockets.client.connect
+
+    def new_method(*args, **kwargs):
+        kwargs['ping_interval'] = None
+        kwargs['ping_timeout'] = None
+        return original_method(*args, **kwargs)
+
+    pyppeteer.connection.websockets.client.connect = new_method
+
 
 
 def main():
     '''
     Executes the main worker program to fetch data and insert it to the database.
     '''
+    patch_pyppeteer()
     # readfile(PATH_TO_FILE) # PLaceholder data
     
-    get_phone_info(FONEARENA + 'xiaomi-mi-9_9166.html')
+    # get_phone_info(FONEARENA + 'xiaomi-mi-9_9166.html')
+    get_img('Xiaomi Mi 9')
 
 
 if __name__ == "__main__":
