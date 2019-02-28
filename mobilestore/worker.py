@@ -4,13 +4,9 @@ import psycopg2
 import psycopg2.extras
 import logging
 import configparser
-import requests
 import re
 import urllib.request
-import time
 from selenium import webdriver
-from requests_html import HTMLSession
-from bs4 import BeautifulSoup
 from random import randint
 from datetime import datetime
 
@@ -20,7 +16,6 @@ config = configparser.ConfigParser()
 config.read(os.path.join(BASE_DIR, '.ini'))
 
 PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
-
 
 GSM_ARENA = 'https://www.gsmarena.com/'
 GSM_ARENA_RES = GSM_ARENA + 'results.php3?sAvailabilities=1&FormFactors=1'
@@ -36,6 +31,7 @@ def connect_db():
     Requires:
         Nothing.
     Ensures:
+        Returns a dictionary with the newly created connection details:
         - conn: a connection established to the database;
         - cursor: a cursor connected to the database.
     '''
@@ -47,7 +43,7 @@ def connect_db():
             host = config['DB']['HOST'], 
             port = config['DB']['PORT'] 
         )
-        print('Successful connection to DB.')
+        logging.info('Successful connection to DB.')
 
     except:
         logging.exception(
@@ -57,22 +53,23 @@ def connect_db():
 
     else:
         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
-        return conn, cur
+        return { 'conn': conn, 'cursor': cur }
 
 
-def close_db(conn, cur):
+def close_db(con_details):
     '''
     Closes a connection to the database.
 
     Requires:
+        con_details, a dictionary with:
         - conn: a connection established to the database;
         - cursor: a cursor connected to the database.
     Ensures:
         Safely closes a connection to the database.
     '''
-    cur.close()
-    conn.close()
-    print('Connection to db terminated safely.')
+    con_details['cursor'].close()
+    con_details['conn'].close()
+    logging.info('Connection to db terminated safely.')
 
 
 def readfile(filepath):
@@ -80,29 +77,29 @@ def readfile(filepath):
     Reads smartphone data from a given JSON file.
     
     Requires: 
-        - filepath (str): path to a JSON file.
+        - filepath (str): path to a JSON file with information about phones.
     Ensures:
         - data is parsed and added to database, if not already saved.
     '''
 
-    conn, cur = connect_db()
+    con_details = connect_db()
 
     with open(filepath, 'r') as file:
         data = json.load(file)
 
         for phone in data:
-            model = phone['model']
-            image = phone['img']
-            manufacturer = phone['company']
-            price = phone['price']
-            description = phone['info'].replace("'", "''")
-            specs = json.dumps(phone['specs'])
-            stock = randint(1,100)
+            details = {}
+            details['model'] = phone['model']
+            details['image'] = phone['img']
+            details['manufacturer'] = phone['company']
+            details['price'] = phone['price']
+            details['description'] = phone['info'].replace("'", "''")
+            details['specs'] = json.dumps(phone['specs'])
+            details['stock'] = randint(1,100)
 
-            insert_data(conn, cur, \
-                model, image, manufacturer, price, description, specs, stock)
+            insert_data(con_details, details)
 
-    close_db(conn, cur)
+    close_db(con_details)
 
 
 def fetch_data(url, limit=1):
@@ -118,7 +115,7 @@ def fetch_data(url, limit=1):
         - Finds a link to each of the phones, gathers more info and then,
           data is gathered and added to db, if not already saved.
     '''
-    # conn, cur = connect_db()
+    # con_details = connect_db()
     driver = webdriver.Chrome('./chromedriver')
 
     driver.get(url)
@@ -149,19 +146,10 @@ def fetch_data(url, limit=1):
             # try next phone
 
         # else:
-            # insert_data(
-            #    cur, 
-            #    image,
-            #    phone_info['model'],
-            #    phone_info['manufacturer'],
-            #    phone_info['price'],
-            #    phone_info['description'],
-            #    phone_info['specs'],
-            #    phone_info['stock']
-            # )
+            # insert_data(con_details, phone_info)
 
     driver.quit()
-    # close_db(conn, cur)
+    # close_db(con_details)
 
   
 def get_phone_info(url, driver):
@@ -309,15 +297,17 @@ def camera_info(string):
     return re.split('(?<=MP) (?!.*MP.*)', string)[0]
 
 
-def insert_data(conn, cursor, model, image, manufacturer, price, description, specs, stock):
+def insert_data(con_details, phone):
     '''
     Inserts data about one given phone to the provided database, and also data 
     about the company that manufactures it, if necessary. Phone data will not 
     be added if phone model already exists in the database.
 
-    Requires: 
+    Requires:
+        con_details, a dictionary with: 
         - conn: a connection established to the database;
         - cursor: a cursor connected to the database;
+        phone, a dictionary with:
         - model (str);
         - image (str);
         - manufacturer (str);
@@ -329,14 +319,24 @@ def insert_data(conn, cursor, model, image, manufacturer, price, description, sp
     Ensures:
         - data is saved to database.
     '''
+    conn = con_details['conn']
+    cursor = con_details['cursor']
     # Check if phone exists in the database
 
     # TODO: Make this separate to be called before fetching so much info
-    query = "SELECT id FROM phones_phone WHERE model='%s';" % model
+    query = """
+        SELECT id 
+        FROM phones_phone 
+        WHERE model='%s';
+        """ % phone['model']
     cursor.execute(query)
     if not cursor.fetchone():
         # Check if company exists in the database and save its ID
-        query = "SELECT id FROM phones_company WHERE name='%s';" % manufacturer
+        query = """
+            SELECT id 
+            FROM phones_company 
+            WHERE name='%s';
+            """ % phone['manufacturer']
         cursor.execute(query)
         company_key = cursor.fetchone()
         if not company_key:
@@ -344,13 +344,13 @@ def insert_data(conn, cursor, model, image, manufacturer, price, description, sp
             query = """
                 INSERT INTO phones_company (name) 
                 VALUES ('%s') RETURNING id;
-                """ % manufacturer
+                """ % phone['manufacturer']
             cursor.execute(query)
             company_key = cursor.fetchone()
             conn.commit()
-            print(
+            logging.info(
                 datetime.now(),
-                '- New company added to database (%s)' % (manufacturer)
+                '- New company added to database (%s)' % (phone['manufacturer'])
             )
         company_key = company_key[0]
         
@@ -358,17 +358,18 @@ def insert_data(conn, cursor, model, image, manufacturer, price, description, sp
         query = """INSERT INTO phones_phone 
             (model, image, manufacturer_id, price, description, specs, stock)
             VALUES ('%s', '%s', %s, %s, '%s', '%s', %s);
-            """ % (model, image, company_key, price, description, specs, stock)
+            """ % (phone['model'], phone['image'], company_key, phone['price'],
+            phone['description'], phone['specs'], phone['stock'])
         cursor.execute(query)
         conn.commit()
-        print(
+        logging.info(
             datetime.now(), 
-            '- New phone added to the database (%s)' % model
+            '- New phone added to the database (%s)' % phone['model']
         )
     else:
-        print(
+        logging.info(
             datetime.now(), 
-            '- Phone already exists in the database (%s)' % model
+            '- Phone already exists in the database (%s)' % phone['model']
         )
 
 
@@ -403,6 +404,8 @@ def main():
     Executes the main worker program to fetch data about smartphones and insert 
     it to the database.
     '''
+    logging.basicConfig(filename='debug.log',level=logging.DEBUG)
+    # TODO: change logging format
     # readfile(PATH_TO_FILE) # Placeholder data
     fetch_data(GSM_ARENA_RES, 2)
 
