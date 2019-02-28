@@ -9,15 +9,10 @@ pylint = "*"
 [packages]
 django = "*"
 djangorestframework = "*"
-psycopg2 = "*"
-psycopg2-binary = "*"
 configparser = "*"
 pillow = "*"
-requests = "*"
-beautifulsoup4 = "*"
-requests-html = "*"
-pyppeteer = "*"
 selenium = "*"
+psycopg2 = "*"
 
 [requires]
 python_version = "3.7"
