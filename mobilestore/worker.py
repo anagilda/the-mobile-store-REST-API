@@ -24,6 +24,82 @@ ALLO = 'https://allo.ua/ru/'
 ALLO_SEARCH = ALLO + 'catalogsearch/result/index/?cat=3&q=' # cat=3 only phones
 
 
+class MyDatabase(object):
+    ''' A PostgreSQL database connection. '''
+
+    def __init__(self):
+        '''
+        Initiates a connection to the database.
+
+        Requires:
+            - self: an object of the MyDatabase class.
+        Ensures:
+            Saves a newly created connection details to the object:
+            - _conn: a connection established to the database;
+            - _cursor: a cursor connected to the database.
+            If connection is unsuccessful, both values will be None.
+        '''
+        try:
+            self._conn = psycopg2.connect(
+                dbname = config['DB']['NAME'], 
+                user = config['DB']['USER'], 
+                password = config['DB']['PASSWORD'],
+                host = config['DB']['HOST'], 
+                port = config['DB']['PORT'] 
+            )
+            logging.info('Successful connection to DB.')
+
+        except:
+            self._conn = None
+            self._cursor = None
+            logging.exception(
+                str(datetime.now()) 
+                + ' - Unable to connect to the database.'
+            )
+
+        else:
+            self._cursor = self._conn.cursor(
+                cursor_factory = psycopg2.extras.DictCursor
+            )
+
+    def query(self, query, params):
+        '''
+        Sends a query to the database and executes it.
+
+        Requires:
+            - self: an object of the MyDatabase class;
+            - query (str): SQL query to be executed; 
+            - params (tuple): parameters specific to the parameterized query 
+            provided.
+        Ensures:
+            Returns a database response.
+        '''
+        return self._cursor.execute(query, params)
+
+    def commit(self):
+        '''
+        Makes sure that changes are applied to database.
+
+        Requires:
+            - self: an object of the MyDatabase class.
+        Ensures:
+            Previous changes are permanently applied to the database.
+        '''
+        self._conn.commit()
+
+    def __del__(self):
+        '''
+        Closes a connection to the database when the object falls out of scope.
+
+        Requires:
+            - self: an object of the MyDatabase class.
+        Ensures:
+            Safely closes a connection to the database.
+        '''
+        self._cursor.close()
+        self._conn.close()
+        logging.info('Connection to db terminated safely.')
+
 def connect_db():
     '''
     Creates a connection to the database.
@@ -407,7 +483,17 @@ def main():
     logging.basicConfig(filename='debug.log',level=logging.DEBUG)
     # TODO: change logging format
     # readfile(PATH_TO_FILE) # Placeholder data
-    fetch_data(GSM_ARENA_RES, 2)
+    #fetch_data(GSM_ARENA_RES, 2)
+
+    sql = MyDatabase()
+    q = """
+        SELECT * 
+        FROM phones_phone 
+        WHERE id=%s AND model=%s;
+        """ 
+    p = (10, 'Honor 10 Lite')
+    sql.query(q, p)
+    print(sql._cursor.fetchone())
 
 
 if __name__ == "__main__":
