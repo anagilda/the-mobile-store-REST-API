@@ -473,8 +473,12 @@ def main():
     Executes the main worker program to fetch data about smartphones and insert 
     it to the database.
     '''
-    logging.basicConfig(filename='debug.log',level=logging.DEBUG)
-    # TODO: change logging format
+    logging.basicConfig(
+        format='%(asctime)s - %(levelname)s:%(name)s: %(message)s', 
+        datefmt='%d-%b-%y %H:%M:%S',
+        filename='debug.log',
+        level=logging.INFO
+    )
     readfile(PATH_TO_FILE) # Placeholder data
     # fetch_data(GSM_ARENA_RES, 2)
 
