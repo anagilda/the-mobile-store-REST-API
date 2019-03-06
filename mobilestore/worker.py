@@ -185,7 +185,14 @@ def readfile(filepath):
             details['specs'] = json.dumps(phone['specs'])
             details['stock'] = randint(1,100)
 
-            insert_data(db_connection, details)
+            query = "SELECT id FROM phones_phone WHERE model=%s;" 
+            db_connection.query(query, (details['model'],))
+            if db_connection.fetch_one() is None:
+                insert_data(db_connection, details)
+            else:
+                logging.warning(
+                    'Phone already in the database (%s).' % details['model']
+                )
 
 
 def fetch_data(url, limit=1):
@@ -222,11 +229,11 @@ def fetch_data(url, limit=1):
     for anchor in results[:limit]:
         
         try:
-            phone_info = get_phone_info(anchor, driver)
+            phone_info = get_phone_info(anchor, driver, db_connection)
             assert(isinstance(phone_info, dict)) 
 
         except AssertionError: 
-            logging.warning('Phone %s already in the database.' % phone_info)
+            logging.warning('Phone already in the database (%s).' % phone_info)
 
         except Exception:
             logging.exception(
@@ -240,7 +247,7 @@ def fetch_data(url, limit=1):
     driver.quit()
 
   
-def get_phone_info(url, driver):
+def get_phone_info(url, driver, db_con):
     '''
     ---
     
@@ -256,7 +263,7 @@ def get_phone_info(url, driver):
     
     # If model is already in database, skip it
     query = "SELECT id FROM phones_phone WHERE model=%s;" 
-    db_con.query(query, (phone['model'],))
+    db_con.query(query, (model,))
     if db_con.fetch_one() is not None:
         return model 
 
@@ -389,8 +396,7 @@ def camera_info(string):
 def insert_data(db_con, phone):
     '''
     Inserts data about one given phone to the provided database, and also data 
-    about the company that manufactures it, if necessary. Phone data will not 
-    be added if phone model already exists in the database.
+    about the company that manufactures it, if necessary.
 
     Requires:
         - db_con (obj): a MyDatabase object.
@@ -406,48 +412,34 @@ def insert_data(db_con, phone):
     Ensures:
         - data is saved to database.
     '''
-   
-    if not cursor.fetchone():
-        # Check if company exists in the database and save its ID
-        query = """
-            SELECT id 
-            FROM phones_company 
-            WHERE name='%s';
-            """ % phone['manufacturer']
-        cursor.execute(query)
-        company_key = cursor.fetchone()
-        if not company_key:
-            # Insert new company to db
-            query = """
-                INSERT INTO phones_company (name) 
-                VALUES ('%s') RETURNING id;
-                """ % phone['manufacturer']
-            cursor.execute(query)
-            company_key = cursor.fetchone()
-            conn.commit()
-            logging.info(
-                datetime.now(),
-                '- New company added to database (%s)' % phone['manufacturer']
-            )
-        company_key = company_key[0]
-        
-        # Insert new phone to db
-        query = """INSERT INTO phones_phone 
-            (model, image, manufacturer_id, price, description, specs, stock)
-            VALUES ('%s', '%s', %s, %s, '%s', '%s', %s);
-            """ % (phone['model'], phone['image'], company_key, phone['price'],
-            phone['description'], phone['specs'], phone['stock'])
-        cursor.execute(query)
-        conn.commit()
-        logging.info(
-            datetime.now(), 
-            '- New phone added to the database (%s)' % phone['model']
-        )
-    else:
-        logging.info(
-            datetime.now(), 
-            '- Phone already exists in the database (%s)' % phone['model']
-        )
+    # Check if company exists in the database and save its ID
+    query = "SELECT id FROM phones_company WHERE name=%s;" 
+    db_con.query(query, (phone['manufacturer'],))
+    company_key = db_con.fetch_one()
+
+    if not company_key:
+        # Insert new company to db
+        query = "INSERT INTO phones_company (name) VALUES ('%s') RETURNING id;" 
+        db_con.query(query, (phone['manufacturer'],))
+        company_key = db_con.fetch_one()
+        db_con.commit()
+        logging.info('New company added to db (%s)' % phone['manufacturer'])
+
+    company_key = company_key[0]
+    
+    # Insert new phone to db
+    query = """INSERT INTO phones_phone 
+        (model, image, manufacturer_id, price, description, specs, stock)
+        VALUES (%s, %s, %s, %s, %s, %s, %s);
+        """
+    db_con.query(
+        query, 
+        (phone['model'], phone['image'], company_key, phone['price'],
+        phone['description'], phone['specs'], phone['stock'])
+    )
+    db_con.commit()
+    logging.info('New phone added to the db (%s)' % phone['model'])
+
 
 
 def get_img(phone, driver):
