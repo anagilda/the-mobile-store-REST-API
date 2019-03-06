@@ -76,6 +76,18 @@ class MyDatabase(object):
         '''
         return self._cursor.execute(query, params)
 
+    def fetch_one(self):
+        '''
+        Iterates the next result from a previous query saved in the cursor.
+
+        Requires:
+            - self: an object of the MyDatabase class, after a query has been
+            executed.
+        Ensures:
+            Returns the next item from the response saved in the cursor.
+        '''
+        return self._cursor.fetchone()
+
     def commit(self):
         '''
         Makes sure that changes are applied to database.
@@ -100,52 +112,52 @@ class MyDatabase(object):
         self._conn.close()
         logging.info('Connection to db terminated safely.')
 
-def connect_db():
-    '''
-    Creates a connection to the database.
+# def connect_db():
+#     '''
+#     Creates a connection to the database.
 
-    Requires:
-        Nothing.
-    Ensures:
-        Returns a dictionary with the newly created connection details:
-        - conn: a connection established to the database;
-        - cursor: a cursor connected to the database.
-    '''
-    try:
-        conn = psycopg2.connect(
-            dbname = config['DB']['NAME'], 
-            user = config['DB']['USER'], 
-            password = config['DB']['PASSWORD'],
-            host = config['DB']['HOST'], 
-            port = config['DB']['PORT'] 
-        )
-        logging.info('Successful connection to DB.')
+#     Requires:
+#         Nothing.
+#     Ensures:
+#         Returns a dictionary with the newly created connection details:
+#         - conn: a connection established to the database;
+#         - cursor: a cursor connected to the database.
+#     '''
+#     try:
+#         conn = psycopg2.connect(
+#             dbname = config['DB']['NAME'], 
+#             user = config['DB']['USER'], 
+#             password = config['DB']['PASSWORD'],
+#             host = config['DB']['HOST'], 
+#             port = config['DB']['PORT'] 
+#         )
+#         logging.info('Successful connection to DB.')
 
-    except:
-        logging.exception(
-            str(datetime.now()) 
-            + ' - Unable to connect to the database.'
-        )
+#     except:
+#         logging.exception(
+#             str(datetime.now()) 
+#             + ' - Unable to connect to the database.'
+#         )
 
-    else:
-        cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
-        return { 'conn': conn, 'cursor': cur }
+#     else:
+#         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+#         return { 'conn': conn, 'cursor': cur }
 
 
-def close_db(con_details):
-    '''
-    Closes a connection to the database.
+# def close_db(con_details):
+#     '''
+#     Closes a connection to the database.
 
-    Requires:
-        con_details, a dictionary with:
-        - conn: a connection established to the database;
-        - cursor: a cursor connected to the database.
-    Ensures:
-        Safely closes a connection to the database.
-    '''
-    con_details['cursor'].close()
-    con_details['conn'].close()
-    logging.info('Connection to db terminated safely.')
+#     Requires:
+#         con_details, a dictionary with:
+#         - conn: a connection established to the database;
+#         - cursor: a cursor connected to the database.
+#     Ensures:
+#         Safely closes a connection to the database.
+#     '''
+#     con_details['cursor'].close()
+#     con_details['conn'].close()
+#     logging.info('Connection to db terminated safely.')
 
 
 def readfile(filepath):
@@ -158,7 +170,7 @@ def readfile(filepath):
         - data is parsed and added to database, if not already saved.
     '''
 
-    con_details = connect_db()
+    db_connection = MyDatabase()
 
     with open(filepath, 'r') as file:
         data = json.load(file)
@@ -173,9 +185,7 @@ def readfile(filepath):
             details['specs'] = json.dumps(phone['specs'])
             details['stock'] = randint(1,100)
 
-            insert_data(con_details, details)
-
-    close_db(con_details)
+            insert_data(db_connection, details)
 
 
 def fetch_data(url, limit=1):
@@ -191,7 +201,7 @@ def fetch_data(url, limit=1):
         - Finds a link to each of the phones, gathers more info and then,
           data is gathered and added to db, if not already saved.
     '''
-    # con_details = connect_db()
+    db_connection = MyDatabase()
     driver = webdriver.Chrome('./chromedriver')
 
     driver.get(url)
@@ -211,21 +221,23 @@ def fetch_data(url, limit=1):
 
     for anchor in results[:limit]:
         
-        # try:
-        phone_info = get_phone_info(anchor, driver)
-        print(phone_info)
+        try:
+            phone_info = get_phone_info(anchor, driver)
+            assert(isinstance(phone_info, dict)) 
 
-        # except: 
-            # not enough data ?
-            # phone already in database ?
-            # something else?
-            # try next phone
+        except AssertionError: 
+            logging.warning('Phone %s already in the database.' % phone_info)
+
+        except Exception:
+            logging.exception(
+                str(datetime.now()) 
+                + ' - Unable to gather phone information (url: %s).' % anchor
+            )
 
         # else:
-            # insert_data(con_details, phone_info)
+        #    insert_data(db_connection, phone_info)     
 
     driver.quit()
-    # close_db(con_details)
 
   
 def get_phone_info(url, driver):
@@ -238,17 +250,18 @@ def get_phone_info(url, driver):
     Ensures:
         - ... 
     '''
-    phone_info = {}
-
     driver.get(url)
 
     model = driver.find_element_by_class_name('specs-phone-name-title').text
-    # TODO: If model already in database, next phone
-    # assertion > exception / return ...
+    
+    # If model is already in database, skip it
+    query = "SELECT id FROM phones_phone WHERE model=%s;" 
+    db_con.query(query, (phone['model'],))
+    if db_con.fetch_one() is not None:
+        return model 
 
-    # else:
     details = get_details(model, driver)
-
+    phone_info = {}
     phone_info['model'] = model
     phone_info['image'] = get_img(model, driver)
     phone_info['manufacturer'] = details['manufacturer']
@@ -373,39 +386,27 @@ def camera_info(string):
     return re.split('(?<=MP) (?!.*MP.*)', string)[0]
 
 
-def insert_data(con_details, phone):
+def insert_data(db_con, phone):
     '''
     Inserts data about one given phone to the provided database, and also data 
     about the company that manufactures it, if necessary. Phone data will not 
     be added if phone model already exists in the database.
 
     Requires:
-        con_details, a dictionary with: 
-        - conn: a connection established to the database;
-        - cursor: a cursor connected to the database;
-        phone, a dictionary with:
-        - model (str);
-        - image (str);
-        - manufacturer (str);
-        - price (int);
-        - description (str);
-        - specs (json) - including information about body, display, platform, 
-          chipset, memory, camera (main, selfie, features), battery & features; 
-        - stock (int).
+        - db_con (obj): a MyDatabase object.
+        - phone, a dictionary with:
+            model (str);
+            image (str);
+            manufacturer (str);
+            price (int);
+            description (str);
+            specs (json) - including information about body, display, platform, 
+            chipset, memory, camera(main, selfie, features), battery & features;
+            stock (int).
     Ensures:
         - data is saved to database.
     '''
-    conn = con_details['conn']
-    cursor = con_details['cursor']
-    # Check if phone exists in the database
-
-    # TODO: Make this separate to be called before fetching so much info
-    query = """
-        SELECT id 
-        FROM phones_phone 
-        WHERE model='%s';
-        """ % phone['model']
-    cursor.execute(query)
+   
     if not cursor.fetchone():
         # Check if company exists in the database and save its ID
         query = """
@@ -426,7 +427,7 @@ def insert_data(con_details, phone):
             conn.commit()
             logging.info(
                 datetime.now(),
-                '- New company added to database (%s)' % (phone['manufacturer'])
+                '- New company added to database (%s)' % phone['manufacturer']
             )
         company_key = company_key[0]
         
@@ -482,18 +483,8 @@ def main():
     '''
     logging.basicConfig(filename='debug.log',level=logging.DEBUG)
     # TODO: change logging format
-    # readfile(PATH_TO_FILE) # Placeholder data
-    #fetch_data(GSM_ARENA_RES, 2)
-
-    sql = MyDatabase()
-    q = """
-        SELECT * 
-        FROM phones_phone 
-        WHERE id=%s AND model=%s;
-        """ 
-    p = (10, 'Honor 10 Lite')
-    sql.query(q, p)
-    print(sql._cursor.fetchone())
+    readfile(PATH_TO_FILE) # Placeholder data
+    # fetch_data(GSM_ARENA_RES, 2)
 
 
 if __name__ == "__main__":
