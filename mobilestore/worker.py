@@ -52,10 +52,7 @@ class MyDatabase(object):
         except:
             self._conn = None
             self._cursor = None
-            logging.exception(
-                str(datetime.now()) 
-                + ' - Unable to connect to the database.'
-            )
+            logging.exception('Unable to connect to the database.')
 
         else:
             self._cursor = self._conn.cursor(
@@ -72,7 +69,7 @@ class MyDatabase(object):
             - params (tuple): parameters specific to the parameterized query 
             provided.
         Ensures:
-            Returns a database response.
+            Returns a database response, and saves results to the cursor.
         '''
         return self._cursor.execute(query, params)
 
@@ -111,53 +108,6 @@ class MyDatabase(object):
         self._cursor.close()
         self._conn.close()
         logging.info('Connection to db terminated safely.')
-
-# def connect_db():
-#     '''
-#     Creates a connection to the database.
-
-#     Requires:
-#         Nothing.
-#     Ensures:
-#         Returns a dictionary with the newly created connection details:
-#         - conn: a connection established to the database;
-#         - cursor: a cursor connected to the database.
-#     '''
-#     try:
-#         conn = psycopg2.connect(
-#             dbname = config['DB']['NAME'], 
-#             user = config['DB']['USER'], 
-#             password = config['DB']['PASSWORD'],
-#             host = config['DB']['HOST'], 
-#             port = config['DB']['PORT'] 
-#         )
-#         logging.info('Successful connection to DB.')
-
-#     except:
-#         logging.exception(
-#             str(datetime.now()) 
-#             + ' - Unable to connect to the database.'
-#         )
-
-#     else:
-#         cur = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
-#         return { 'conn': conn, 'cursor': cur }
-
-
-# def close_db(con_details):
-#     '''
-#     Closes a connection to the database.
-
-#     Requires:
-#         con_details, a dictionary with:
-#         - conn: a connection established to the database;
-#         - cursor: a cursor connected to the database.
-#     Ensures:
-#         Safely closes a connection to the database.
-#     '''
-#     con_details['cursor'].close()
-#     con_details['conn'].close()
-#     logging.info('Connection to db terminated safely.')
 
 
 def readfile(filepath):
@@ -205,8 +155,8 @@ def fetch_data(url, limit=1):
         - url (str): must be a link with a search results list of phones.
         - limit (int - optional): maximum number of results added to the db.
     Ensures:
-        - Finds a link to each of the phones, gathers more info and then,
-          data is gathered and added to db, if not already saved.
+        Finds a link to each of the phones, gathers more info and then,
+        data is gathered and added to db, if not already saved.
     '''
     db_connection = MyDatabase()
     driver = webdriver.Chrome('./chromedriver')
@@ -237,25 +187,38 @@ def fetch_data(url, limit=1):
 
         except Exception:
             logging.exception(
-                str(datetime.now()) 
-                + ' - Unable to gather phone information (url: %s).' % anchor
+                'Unable to gather phone information (url: %s).' % anchor
             )
 
-        # else:
-        #    insert_data(db_connection, phone_info)     
+        else:
+            try:
+                insert_data(db_connection, phone_info)
+            except KeyError:
+                logging.exception(
+                'Unable to add all needed information to db (url: %s).' % anchor
+            )
 
     driver.quit()
 
   
 def get_phone_info(url, driver, db_con):
     '''
-    ---
+    Finds several details about a phone, from a given gsm arena url.
     
     Requires: 
-        - url (str):
-        - driver
+        - url (str): gsm arena link with info about a phone.
+        - driver (obj): driver object from the selenium library.
+        - db_con (MyDatabase): database connection details.
     Ensures:
-        - ... 
+        Returns a dictionary with:
+            model (str);
+            image (str);
+            manufacturer (str);
+            price (int);
+            description (str);
+            specs (json) - including information about body, display, platform, 
+            chipset, memory, camera(main, selfie, features), battery & features;
+            stock (int).
     '''
     driver.get(url)
 
@@ -277,7 +240,7 @@ def get_phone_info(url, driver, db_con):
         .search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
         .group()
     )
-    phone_info['info'] = details['description']
+    phone_info['description'] = details['description']
     phone_info['specs'] = {}
     phone_info['specs']['body'] = details['body']['dimensions']
     phone_info['specs']['display'] = details['display']['size']
@@ -289,6 +252,7 @@ def get_phone_info(url, driver, db_con):
         'selfie': details['frontcamera'],
         'features': details['maincamera']['features']
     }
+    phone_info['specs'] = json.dumps(phone_info['specs'])
     phone_info['features'] = details['features']['sensors']
     phone_info['battery'] = details['battery']['']
     phone_info['stock'] = randint(1,100)
@@ -317,10 +281,7 @@ def get_details(model, driver):
                     td.text for td in line.find_elements_by_tag_name('td')
                 ]
             except:
-                logging.exception(
-                    str(datetime.now()) 
-                    + ' - Unable to extract info from line in table.'
-                )
+                logging.exception('Unable to extract info from line in table.')
             else:
                 specs[minify_str(name)] = clean_str(info)
         details[minify_str(section)] = specs
@@ -405,7 +366,7 @@ def insert_data(db_con, phone):
             image (str);
             manufacturer (str);
             price (int);
-            description (str);
+            info (str);
             specs (json) - including information about body, display, platform, 
             chipset, memory, camera(main, selfie, features), battery & features;
             stock (int).
@@ -419,7 +380,7 @@ def insert_data(db_con, phone):
 
     if not company_key:
         # Insert new company to db
-        query = "INSERT INTO phones_company (name) VALUES ('%s') RETURNING id;" 
+        query = "INSERT INTO phones_company (name) VALUES (%s) RETURNING id;" 
         db_con.query(query, (phone['manufacturer'],))
         company_key = db_con.fetch_one()
         db_con.commit()
@@ -462,8 +423,10 @@ def get_img(phone, driver):
     first_img = img_window.find_elements_by_tag_name("img")[0]
     img_url = first_img.get_attribute("src")
 
-    img_path = os.path.join(BASE_DIR, 'assets/img', minify_str(phone) + '.jpg')
-    urllib.request.urlretrieve(img_url, img_path)
+    img_path = 'img/' + minify_str(phone) + '.jpg'
+    urllib.request.urlretrieve(
+        img_url, os.path.join(BASE_DIR, 'assets', img_path)
+    )
 
     return img_path
 
@@ -479,8 +442,8 @@ def main():
         filename='debug.log',
         level=logging.INFO
     )
-    readfile(PATH_TO_FILE) # Placeholder data
-    # fetch_data(GSM_ARENA_RES, 2)
+    # readfile(PATH_TO_FILE) # Placeholder data
+    fetch_data(GSM_ARENA_RES, 1)
 
 
 if __name__ == "__main__":
