@@ -19,7 +19,8 @@ PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
 
 GSM_ARENA = 'https://www.gsmarena.com/'
 GSM_ARENA_RES = GSM_ARENA + 'results.php3?sAvailabilities=1&FormFactors=1'
-FONEARENA_SEARCH = 'https://www.fonearena.com/csearch.php?q='
+FONEARENA = 'https://www.fonearena.com/'
+FONEARENA_SEARCH = FONEARENA + 'csearch.php?q='
 ALLO = 'https://allo.ua/ru/'
 ALLO_SEARCH = ALLO + 'catalogsearch/result/index/?cat=3&q=' # cat=3 only phones
 
@@ -155,8 +156,11 @@ def fetch_data(url, limit=1):
         - url (str): must be a link with a search results list of phones.
         - limit (int - optional): maximum number of results added to the db.
     Ensures:
-        Finds a link to each of the phones, gathers more info and then,
-        data is gathered and added to db, if not already saved.
+        Finds a link to a limited number of phones, gathers more info and then,
+        data is gathered and added to db, if not already saved. 
+        Note: limit refers to number of links checked, but these may fail to 
+        provide the necessary info, resulting in a smaller number of phones 
+        added to the db.
     '''
     db_connection = MyDatabase()
     driver = webdriver.Chrome('./chromedriver')
@@ -203,22 +207,24 @@ def fetch_data(url, limit=1):
   
 def get_phone_info(url, driver, db_con):
     '''
-    Finds several details about a phone, from a given gsm arena url.
+    Finds several details about a phone, from a given gsm arena url, after 
+    checking the model does not exist in the db.
     
     Requires: 
-        - url (str): gsm arena link with info about a phone.
-        - driver (obj): driver object from the selenium library.
+        - url (str): gsm arena link with info about a phone;
+        - driver (obj): driver object from the selenium library;
         - db_con (MyDatabase): database connection details.
     Ensures:
-        Returns a dictionary with:
+        Returns a dictionary with a phone's details:
             model (str);
-            image (str);
+            image (str): path to image;
             manufacturer (str);
-            price (int);
+            price (float);
             description (str);
             specs (json) - including information about body, display, platform, 
             chipset, memory, camera(main, selfie, features), battery & features;
             stock (int).
+        Or a string with the model, if it is already saved to the db.
     '''
     driver.get(url)
 
@@ -262,13 +268,16 @@ def get_phone_info(url, driver, db_con):
 
 def get_details(model, driver):
     '''
-    Parses details from a given list of tables and saves it to a dictionary.
+    Parses details from a table in a given gsmarena url saved in a given driver
+    object, and finds more info in another website (fonearena). Saves all 
+    gathered info in a dictionary.
 
     Requires:
-        - model (str):
-        - driver: a soup object with the table element.
+        - model (str): a phone model;
+        - driver (obj): driver object from the selenium library, with a gsm 
+        arena website with info about the given phone model;
     Ensures:
-        - details (dict): information for each th table section from the list.
+        - details (dict): all information scraped from gsmarena and fonearena.
     '''   
     details = {}
    
@@ -339,7 +348,7 @@ def clean_str(string):
     Also removes leading bullets.
 
     Requires: string (str).
-    Ensures: string is returned in with correct spacing.
+    Ensures: string is returned with correct spacing.
     '''
     return re.sub('^-', '', re.sub('\s+', ' ', string)).strip()
 
@@ -357,15 +366,16 @@ def camera_info(string):
 def insert_data(db_con, phone):
     '''
     Inserts data about one given phone to the provided database, and also data 
-    about the company that manufactures it, if necessary.
+    about the company that manufactures it, if necessary. Phone model provided 
+    must not exist in the db.
 
     Requires:
-        - db_con (obj): a MyDatabase object.
-        - phone, a dictionary with:
+        - db_con (MyDatabase): database connection details.
+        - phone, a dictionary with a phone's details:
             model (str);
-            image (str);
+            image (str): path to image;
             manufacturer (str);
-            price (int);
+            price (float);
             info (str);
             specs (json) - including information about body, display, platform, 
             chipset, memory, camera(main, selfie, features), battery & features;
@@ -373,7 +383,7 @@ def insert_data(db_con, phone):
     Ensures:
         - data is saved to database.
     '''
-    # Check if company exists in the database and save its ID
+    # Check if company exists in the db
     query = "SELECT id FROM phones_company WHERE name=%s;" 
     db_con.query(query, (phone['manufacturer'],))
     company_key = db_con.fetch_one()
@@ -402,15 +412,20 @@ def insert_data(db_con, phone):
     logging.info('New phone added to the db (%s)' % phone['model'])
 
 
-
-def get_img(phone, driver):
+def get_img(model, driver):
     '''
+    Searches for an image (dimensions: 600x415) for the given phone model, saves
+    it locally and returns the image path.
 
     Requires:
+        - model (str): a phone model;
+        - driver (obj): driver object from the selenium library;
     Ensures:
+        An image for the phone is found in the website allo.ua and saved 
+        locally, while the path to it is returned.
     '''
     # Search page
-    search_url = ALLO_SEARCH + phone.replace(' ', '+')
+    search_url = ALLO_SEARCH + model.replace(' ', '+')
     driver.get(search_url)
     (driver
         .find_element_by_class_name('product-name-container')
@@ -423,7 +438,7 @@ def get_img(phone, driver):
     first_img = img_window.find_elements_by_tag_name("img")[0]
     img_url = first_img.get_attribute("src")
 
-    img_path = 'img/' + minify_str(phone) + '.jpg'
+    img_path = 'img/' + minify_str(model) + '.jpg'
     urllib.request.urlretrieve(
         img_url, os.path.join(BASE_DIR, 'assets', img_path)
     )
@@ -443,7 +458,7 @@ def main():
         level=logging.INFO
     )
     # readfile(PATH_TO_FILE) # Placeholder data
-    fetch_data(GSM_ARENA_RES, 1)
+    fetch_data(GSM_ARENA_RES, 1) # Dynamic data
 
 
 if __name__ == "__main__":
