@@ -110,3 +110,6 @@ venv.bak/
 
 # config
 .ini
+
+# Downloaded images
+/assets/img/*
