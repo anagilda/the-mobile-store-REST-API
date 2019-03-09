@@ -458,7 +458,7 @@ def main():
         level=logging.INFO
     )
     # readfile(PATH_TO_FILE) # Placeholder data
-    fetch_data(GSM_ARENA_RES, 1) # Dynamic data
+    fetch_data(GSM_ARENA_RES, 10) # Dynamic data
 
 
 if __name__ == "__main__":
