@@ -440,7 +440,7 @@ def get_img(model, driver):
 
     img_path = 'img/' + minify_str(model) + '.jpg'
     urllib.request.urlretrieve(
-        img_url, os.path.join(BASE_DIR, 'assets', img_path)
+        img_url, os.path.join(BASE_DIR, 'media', img_path)
     )
 
     return img_path

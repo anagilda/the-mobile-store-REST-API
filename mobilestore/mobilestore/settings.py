@@ -5,8 +5,8 @@ import configparser
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Read config file
-config = configparser.ConfigParser()
-config.read(os.path.join(BASE_DIR, '.ini'))
+CONFIG = configparser.ConfigParser()
+CONFIG.read(os.path.join(BASE_DIR, '.ini'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
@@ -70,11 +70,11 @@ WSGI_APPLICATION = 'mobilestore.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config['DB']['NAME'],
-        'USER': config['DB']['USER'],
-        'PASSWORD': config['DB']['PASSWORD'],
-        'HOST': config['DB']['HOST'],
-        'PORT': config['DB']['PORT']
+        'NAME': CONFIG['DB']['NAME'],
+        'USER': CONFIG['DB']['USER'],
+        'PASSWORD': CONFIG['DB']['PASSWORD'],
+        'HOST': CONFIG['DB']['HOST'],
+        'PORT': CONFIG['DB']['PORT']
     }
 }
 

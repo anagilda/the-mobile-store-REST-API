@@ -112,4 +112,4 @@ venv.bak/
 .ini
 
 # Downloaded images
-/assets/img/*
+/mobilestore/media/img/*
