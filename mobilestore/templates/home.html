@@ -12,12 +12,21 @@
 {% block content %}
     <div class="api-info">
         <div class="guide">
+            <p class="note">
+                Note:
+                <br>{ } = required
+                <br>[ ] = optional   
+            </p>
             <p>
-                <b class="color-text">GET /api/phones/</b><br>
+                <b class="color-text">GET /api/phones/[limit][offset]</b><br>
                 Phone list - retrieves a list of phones (id, model, image and price).
                 <ul class="dashed">
+                    <li>Parameters:</li>
+                    <p><b>limit</b> (int): maximum number of results returned (default=8, maximum=20).<br>
+                    <b>offset</b> (int): number of results skipped (default=0).</p>
                     <li>Example usage:</li>
                     <pre><a href="/api/phones/">[base_url]/api/phones/</a></pre>
+                    <pre><a href="/api/phones/?limit=2&offset=1">[base_url]/api/phones/?limit=2&offset=1</a></pre>
                     <li>Example output:</li>
 <pre class="prettify code">
 [
@@ -41,6 +50,8 @@
                 <b class="color-text">GET /api/phones/{id}</b><br>
                 Phone detail - retrieves the full details of a phone with the given id (id, manufacturer, model, image, price, description, specs and stock).
                 <ul class="dashed">
+                    <li>Parameters:</li>
+                    <p><b>id</b> (int): phone id.</p>
                     <li>Example usage:</li>
                     <pre><a href="/api/phones/1/">[base_url]/api/phones/1/</a></pre>
                     <li>Example output:</li>        

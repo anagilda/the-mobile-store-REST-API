@@ -7,11 +7,19 @@ REST API to serve information about mobile phones displayed in the project [The 
 ### Using the API:
 *Note: [base_url] represents either a [deployed app url](https://the-mobile-store.herokuapp.com/) or a [localhost url](http://localhost:8000/).*
 
-#### GET /api/phones/ 
+*Note: { } = required, [ ] = optional.*
+
+#### GET /api/phones/[limit][offset]
 Phone list - retrieves a list of phones (id, model, image and price).
+
+Parameters:
+* limit(int): maximum number of results returned (default=8, maximum=20).
+* offset(int): number of results skipped (default=0).
 
 Example usage:
 * [[base_url]/api/phones/](https://the-mobile-store.herokuapp.com/api/phones)
+* [[base_url]/api/phones/?limit=2&offset=1](https://the-mobile-store.herokuapp.com/api/phones/?limit=2&offset=1)
+
 Example output:
 
 ```
@@ -34,6 +42,9 @@ Example output:
 #### GET /api/phones/{id}
 
 Phone detail - retrieves the full details of a phone with the given id (id, manufacturer, model, image, price, description, specs and stock).
+
+Parameters:
+* id(int): phone id.
 
 Example usage:
 * [[base_url]/api/phones/1/](https://the-mobile-store.herokuapp.com/api/phones/1/)

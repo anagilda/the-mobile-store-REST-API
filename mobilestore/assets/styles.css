@@ -79,6 +79,11 @@ i{
 	margin-bottom: 15px;
 }
 
+.note {
+	font-style: italic;
+	font-size: 0.8rem;
+}
+
 .color-text {
 	color: var(--mainAccent);
 	font-size: 1.25rem;
