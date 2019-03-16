@@ -22,7 +22,7 @@ Example usage:
 
 Example output:
 
-```
+```json
 [
     {
         "id": 1,
@@ -51,7 +51,7 @@ Example usage:
 
 Example output:
 
-```
+```json
 {
     "id": 1,
     "manufacturer": "Google Inc.",
@@ -79,39 +79,47 @@ Example output:
 
 ### Running the project locally:
 
-*Note: you must have Python and pipenv installed.*
+*Note: you must have Python 3, pip and pipenv installed.*
 
-*Note: Verify the [database settings](####databasesettings) first.*
+**Initial setup:**
 
 1. Open the terminal in the project directory.
-2. Run `pipenv install` to create the environment and install dependencies.
-3. Run the `mobilestore/worker.py` file to insert data to the database (if there is some problem with the scraper, you can run the `readfile()` function instead to enter placeholder data).
-4. Open the server (usually at `http://localhost:8000/`).
-5. Use the API!
-
-Run `exit` to deactivate the environment.
-
-#### Database settings
-
-1. Make sure you set up the database connection settings. 
-
-    Keep in mind that sensitive information should not be made public - protect your data. For this, you can save your secret information in a configuration file (`.ini`) similar to the exemplified in `example.ini`.
-
-    This project uses a PostgreSQL database. You can edit the config file and the `DATABASES` variable in the `settings.py` file to set your own or to change it to your preferred type of database. 
-
-    If you are not sure how to do this, you can simply use the Django default (sqlite3) by using the following code on the *mobilestore/mobilestore/settings.py* file:
-
+2. Create the environment and install dependencies.
+    ```shell
+    pipenv install
     ```
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
-    ```
-
-2. In the terminal, run:
-    ```
+3. Verify the [database settings](####databasesettings), and then make database migrations:
+    ```shell
+    cd mobilestore
     python manage.py makemigrations
     python manage.py migrate 
     ```
+4. Run the `worker.py` file to insert data to the database. 
+
+    *Note: You can either run the scraper as it is, or you can  enter placeholder data instead. To do so, edit the `main()` function in this file by commenting/uncommenting what is needed.*
+    ```shell
+    python worker.py
+    ```
+3. Run `exit` to deactivate the environment.  
+
+**Running the project:**
+1. Open the terminal in the project directory.
+2. Activate the virtual environment:
+    ```shell
+    pipenv shell
+    ```
+2. Run and open the server (usually at `http://localhost:8000/`).
+    ```shell
+    cd mobilestore
+    python manage.py runserver
+    ```
+2. Use the API!
+3. Run `exit` to deactivate the environment.
+
+#### Database settings
+
+Make sure you set up the database connection settings. 
+
+Keep in mind that sensitive information should not be made public - protect your data. For this, you can save your secret information in a configuration file (named `.ini`) similar to the exemplified in `example.ini`.
+
+This project uses a PostgreSQL database. You can edit the example config file (`example.ini`) with your own credentials and rename it to `.ini`. 
