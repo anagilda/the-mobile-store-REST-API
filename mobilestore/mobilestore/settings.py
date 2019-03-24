@@ -11,17 +11,24 @@ CONFIG.read(os.path.join(BASE_DIR, '.ini'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
+def get_variable(var):
+    '''
+    Returns a hidden variable that can be saved either in the environment or 
+    config, but surely in one of them.
+    Requires: var (str), with the name of the setting required.
+    Ensures: returns the corresponding variable value.
+    '''
+    try:
+       return CONFIG['TESTING'][var]
+    except:
+        return os.environ.get(var)
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    'SECRET_KEY', 
-    CONFIG['TESTING']['SECRET_KEY']
-)
+SECRET_KEY = get_variable('SECRET_KEY') 
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = (
-    os.environ.get('DEBUG_VALUE', CONFIG['TESTING']['DEBUG_VALUE']) == 'True'
-)
+DEBUG = ( get_variable('DEBUG_VALUE') == 'True' )
 
 ALLOWED_HOSTS = []
 
