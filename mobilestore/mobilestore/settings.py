@@ -19,7 +19,7 @@ def get_variable(var):
     Ensures: returns the corresponding variable value.
     '''
     try:
-       return CONFIG['TESTING'][var]
+        return CONFIG['TESTING'][var]
     except:
         return os.environ.get(var)
 
@@ -83,11 +83,11 @@ WSGI_APPLICATION = 'mobilestore.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': CONFIG['DB']['NAME'],
-        'USER': CONFIG['DB']['USER'],
-        'PASSWORD': CONFIG['DB']['PASSWORD'],
-        'HOST': CONFIG['DB']['HOST'],
-        'PORT': CONFIG['DB']['PORT']
+        'NAME': get_variable('NAME'),
+        'USER': get_variable('USER'),
+        'PASSWORD': get_variable('PASSWORD'),
+        'HOST': get_variable('HOST'),
+        'PORT': get_variable('PORT')
     }
 }
 
