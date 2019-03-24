@@ -1,5 +1,6 @@
 import os
 import configparser
+import django_heroku
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,10 +13,15 @@ CONFIG.read(os.path.join(BASE_DIR, '.ini'))
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '_)v3fvm$w7wxc6k9t3zco#fq#!8y+vh^!&!vbnwb7qxg*v%9y!'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY', 
+    CONFIG['TESTING']['SECRET_KEY']
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = (
+    os.environ.get('DEBUG_VALUE', CONFIG['TESTING']['DEBUG_VALUE']) == 'True'
+)
 
 ALLOWED_HOSTS = []
 
@@ -123,3 +129,6 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Activate Django-Heroku.
+django_heroku.settings(locals())

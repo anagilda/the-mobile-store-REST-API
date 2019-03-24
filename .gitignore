@@ -113,3 +113,4 @@ venv.bak/
 
 # Downloaded images
 /mobilestore/media/img/*
+!/mobilestore/media/img/default.png

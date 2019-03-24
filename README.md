@@ -97,6 +97,9 @@ Example output:
 4. Run the `worker.py` file to insert data to the database. 
 
     *Note: You can either run the scraper as it is, or you can  enter placeholder data instead. To do so, edit the `main()` function in this file by commenting/uncommenting what is needed.*
+
+    *Note: you might need to download the correct [chromedriver](http://chromedriver.chromium.org/) version for your system.*
+
     ```shell
     python worker.py
     ```

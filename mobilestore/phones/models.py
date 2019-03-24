@@ -4,7 +4,7 @@ from django.contrib.postgres.fields import JSONField
 class Phone(models.Model):
     ''' Information about smartphones. '''
     model = models.CharField(max_length=100, unique=True)
-    image = models.ImageField(default='default.png', blank=True)
+    image = models.ImageField(default='img/default.png', blank=True)
     manufacturer = models.ForeignKey('Company', on_delete=models.CASCADE)
     price = models.DecimalField(decimal_places=2, max_digits=10)
     description = models.TextField()
