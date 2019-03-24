@@ -1,1 +1,1 @@
-gunicorn --chdir mobilestore mobilestore.wsgi
+web: gunicorn --chdir mobilestore mobilestore.wsgi
