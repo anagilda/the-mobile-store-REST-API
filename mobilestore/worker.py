@@ -1,3 +1,4 @@
+import boto3
 import os
 import json
 import psycopg2
@@ -15,8 +16,9 @@ BASE_DIR = os.path.dirname(__file__)
 config = configparser.ConfigParser()
 config.read(os.path.join(BASE_DIR, '.ini'))
 
-# env = 'PRODUCTION'
 env = 'TESTING'
+# env = 'PRODUCTION'
+bucket = config['TESTING']['AWS_STORAGE_BUCKET_NAME']
 
 PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
 
@@ -336,12 +338,13 @@ def get_details(model, driver):
 
 def minify_str(string):
     '''
-    Cleans a given string, by removing spaces and turning it into lowercase.
+    Cleans a given string, by removing spaces and other non-alphanumeric
+    characters, and turning it into lowercase.
 
     Requires: string (str).
     Ensures: string is returned in lowercase with no spaces.
     '''
-    return string.replace(' ', '').lower()
+    return re.sub(r'\W', '', string).lower()
 
 
 def clean_str(string):
@@ -353,7 +356,7 @@ def clean_str(string):
     Requires: string (str).
     Ensures: string is returned with correct spacing.
     '''
-    return re.sub('^-', '', re.sub('\s+', ' ', string)).strip()
+    return re.sub(r'^-', '', re.sub(r'\s+', ' ', string)).strip()
 
 
 def camera_info(string):
@@ -363,7 +366,7 @@ def camera_info(string):
     Requires: string (str), with info about a camera.
     Ensures: One string is returned with the information about megapixels only.
     '''
-    return re.split('(?<=MP) (?!.*MP.*)', string)[0]
+    return re.split(r'(?<=MP) (?!.*MP.*)', string)[0]
 
 
 def insert_data(db_con, phone):
@@ -442,9 +445,17 @@ def get_img(model, driver):
     img_url = first_img.get_attribute("src")
 
     img_path = 'img/' + minify_str(model) + '.jpg'
-    urllib.request.urlretrieve(
-        img_url, os.path.join(BASE_DIR, 'media', img_path)
-    )
+    file_path = os.path.join(BASE_DIR, 'media', img_path)
+    urllib.request.urlretrieve(img_url, file_path)
+
+    if env == 'PRODUCTION':
+        s3 = boto3.client('s3')
+        s3.upload_file(
+            file_path, 
+            bucket, 
+            img_path, 
+            ExtraArgs={'ContentType': 'image/jpeg'}
+        )
 
     return img_path
 
@@ -461,7 +472,7 @@ def main():
         level=logging.INFO
     )
     # readfile(PATH_TO_FILE) # Placeholder data
-    fetch_data(GSM_ARENA_RES, 10) # Dynamic data
+    fetch_data(GSM_ARENA_RES, 30) # Dynamic data
 
 
 if __name__ == "__main__":
