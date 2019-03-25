@@ -15,6 +15,9 @@ BASE_DIR = os.path.dirname(__file__)
 config = configparser.ConfigParser()
 config.read(os.path.join(BASE_DIR, '.ini'))
 
+# env = 'PRODUCTION'
+env = 'TESTING'
+
 PATH_TO_FILE = os.path.join(BASE_DIR, 'assets/data.json')
 
 GSM_ARENA = 'https://www.gsmarena.com/'
@@ -42,11 +45,11 @@ class MyDatabase(object):
         '''
         try:
             self._conn = psycopg2.connect(
-                dbname = config['DB']['NAME'], 
-                user = config['DB']['USER'], 
-                password = config['DB']['PASSWORD'],
-                host = config['DB']['HOST'], 
-                port = config['DB']['PORT'] 
+                dbname = config[env]['NAME'], 
+                user = config[env]['USER'], 
+                password = config[env]['PASSWORD'],
+                host = config[env]['HOST'], 
+                port = config[env]['PORT'] 
             )
             logging.info('Successful connection to DB.')
 

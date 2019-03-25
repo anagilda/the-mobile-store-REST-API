@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'phones',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -136,6 +137,16 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# AWS S3 file storage - production only
+if not DEBUG:
+    AWS_ACCESS_KEY_ID = get_variable('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = get_variable('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = get_variable('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_REGION_NAME = 'us-east-2'
+    AWS_DEFAULT_ACL = None
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # Activate Django-Heroku.
 django_heroku.settings(locals())
