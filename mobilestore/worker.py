@@ -8,6 +8,7 @@ import configparser
 import re
 import urllib.request
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from random import randint
 from datetime import datetime
 import math
@@ -168,8 +169,10 @@ def fetch_data(url, limit=1):
         provide the necessary info, resulting in a smaller number of phones 
         added to the db.
     '''
+    chrome_options = Options()  
+    chrome_options.add_argument("--headless")  
     db_connection = MyDatabase()
-    driver = webdriver.Chrome('./chromedriver')
+    driver = webdriver.Chrome('./chromedriver', options=chrome_options)
 
     driver.get(url)
 
@@ -249,7 +252,7 @@ def get_phone_info(url, driver, db_con):
     phone_info['manufacturer'] = details['manufacturer']
     phone_info['price'] = math.floor(float(
         re
-        .search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
+        .search(r'(?<=\$)\d+(\.\d{2})?', details['priceusd'])
         .group()
     ))
     phone_info['description'] = details['description']
@@ -302,7 +305,7 @@ def get_details(model, driver):
         details[minify_str(section)] = specs
 
     fonearena_specs = [
-        'manufacturer', 'price(usd)', 'description', 'rearcamera', 'frontcamera'
+        'manufacturer', 'priceusd', 'description', 'rearcamera', 'frontcamera'
     ]
 
     driver.get(FONEARENA_SEARCH + model.replace(' ', '+'))
