@@ -6,7 +6,7 @@ class Phone(models.Model):
     model = models.CharField(max_length=100, unique=True)
     image = models.ImageField(upload_to='img',default='img/default.png', blank=True)
     manufacturer = models.ForeignKey('Company', on_delete=models.CASCADE)
-    price = models.DecimalField(decimal_places=2, max_digits=10)
+    price = models.PositiveIntegerField()
     description = models.TextField()
     specs = JSONField()
     stock = models.PositiveIntegerField()

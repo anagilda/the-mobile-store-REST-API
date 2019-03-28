@@ -10,6 +10,7 @@ import urllib.request
 from selenium import webdriver
 from random import randint
 from datetime import datetime
+import math
 
 BASE_DIR = os.path.dirname(__file__)
 
@@ -224,7 +225,7 @@ def get_phone_info(url, driver, db_con):
             model (str);
             image (str): path to image;
             manufacturer (str);
-            price (float);
+            price (int);
             description (str);
             specs (json) - including information about body, display, platform, 
             chipset, memory, camera(main, selfie, features), battery & features;
@@ -246,11 +247,11 @@ def get_phone_info(url, driver, db_con):
     phone_info['model'] = model
     phone_info['image'] = get_img(model, driver)
     phone_info['manufacturer'] = details['manufacturer']
-    phone_info['price'] = float(
+    phone_info['price'] = math.floor(float(
         re
         .search('(?<=\$)\d+(\.\d{2})?', details['price(usd)'])
         .group()
-    )
+    ))
     phone_info['description'] = details['description']
     phone_info['specs'] = {}
     phone_info['specs']['body'] = details['body']['dimensions']
@@ -381,7 +382,7 @@ def insert_data(db_con, phone):
             model (str);
             image (str): path to image;
             manufacturer (str);
-            price (float);
+            price (int);
             info (str);
             specs (json) - including information about body, display, platform, 
             chipset, memory, camera(main, selfie, features), battery & features;
