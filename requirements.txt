@@ -1,4 +1,4 @@
--i https://pypi.org/simple
+-i https://pypi.org/simple/
 awscli==1.16.130
 boto3==1.9.120
 botocore==1.12.120
@@ -8,19 +8,19 @@ dj-database-url==0.5.0
 django-heroku==0.3.1
 django-storages==1.7.1
 django==2.1.7
-djangorestframework==3.9.2
-docutils==0.14
+djangorestframework==3.11.2
+docutils==0.16
 gunicorn==19.9.0
-jmespath==0.9.4
+jmespath==0.10.0
 pillow==5.4.1
 psycopg2==2.7.7
-pyasn1==0.4.5
-python-dateutil==2.8.0 ; python_version >= '2.7'
-pytz==2018.9
+pyasn1==0.4.8
+python-dateutil==2.8.1 ; python_version >= '2.7'
+pytz==2021.1
 pyyaml==3.13
 rsa==3.4.2
-s3transfer==0.2.0
+s3transfer==0.2.1
 selenium==3.141.0
-six==1.12.0
-urllib3==1.24.1 ; python_version >= '3.4'
-whitenoise==4.1.2
+six==1.15.0
+urllib3==1.24.3 ; python_version >= '3.4'
+whitenoise==5.2.0
